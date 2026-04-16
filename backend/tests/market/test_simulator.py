@@ -129,3 +129,21 @@ class TestGBMSimulator:
         if '.' in price_str:
             decimal_part = price_str.split('.')[1]
             assert len(decimal_part) <= 2
+
+    def test_cholesky_with_full_default_tickers(self):
+        """The correlation matrix must be positive-definite for all 10 default tickers.
+
+        A bad correlation structure (e.g., rho >= 1 on off-diagonal, or incompatible
+        sector couplings) would cause np.linalg.cholesky to raise LinAlgError.
+        """
+        default_tickers = list(SEED_PRICES.keys())
+        assert len(default_tickers) == 10
+
+        sim = GBMSimulator(tickers=default_tickers)
+        assert sim._cholesky is not None
+        assert sim._cholesky.shape == (10, 10)
+
+        result = sim.step()
+        assert set(result.keys()) == set(default_tickers)
+        for price in result.values():
+            assert price > 0
